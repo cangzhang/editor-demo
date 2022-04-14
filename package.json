@@ -3,48 +3,20 @@
   "version": "0.3.0",
   "description": "A tiny HTML rich text editor written in vanilla JavaScript",
   "scripts": {
+    "start": "vite",
     "build": "rollup -c",
-    "start": "webpack-dev-server --open",
-    "analyze": "npm run build && source-map-explorer dist/bundle.js",
-    "version": "npm run build",
-    "postversion": "git push && git push --tags && npm publish"
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/fvilers/tiny-editor.git"
+    "analyze": "pnpm run build && source-map-explorer dist/bundle.js",
+    "version": "pnpm run build"
   },
   "keywords": [
     "tiny",
     "editor",
-    "wysiwyg",
-    "html",
     "vanilla",
     "javascript"
   ],
-  "author": "Fabian Vilers <fabian.vilers@dev-one.com> (https://www.dev-one.com/)",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/fvilers/tiny-editor/issues"
-  },
-  "homepage": "https://fvilers.github.io/tiny-editor",
   "devDependencies": {
-    "@babel/core": "^7.10.5",
-    "@babel/preset-env": "^7.10.4",
-    "babel-plugin-transform-import-styles": "0.0.11",
-    "babel-template": "^6.26.0",
-    "clean-webpack-plugin": "0.1.19",
-    "css-loader": "1.0.0",
-    "html-webpack-plugin": "3.2.0",
-    "load-styles": "^2.0.0",
-    "rollup": "^0.66.2",
-    "rollup-plugin-babel": "^4.4.0",
-    "rollup-plugin-postcss": "^1.6.2",
-    "rollup-plugin-uglify": "^6.0.4",
-    "source-map-explorer": "^1.6.0",
-    "style-loader": "0.23.0",
-    "webpack": "^4.43.0",
-    "webpack-cli": "^3.3.12",
-    "webpack-dev-server": "^3.11.0",
-    "webpack-merge": "4.1.4"
+    "typescript": "^4.5.4",
+    "vite": "^2.9.2"
   }
 }
