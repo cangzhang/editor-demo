@@ -11,7 +11,16 @@ const rgbToHex = color => {
   return digits[1] + '#' + rgb.toString(16).padStart(6, '0');
 };
 
-export const transformToEditor = (editor, enableToolbar = false, handleUploadFile = () => Promise.resolve()) => {
+const DEFAULT_INPUT_TRIGGER_TIMEOUT = 500;
+
+export const transformToEditor = (editor, config = {}) => {
+  const {
+    enableToolbar = false,
+    handleUploadFile = () => Promise.resolve(),
+    onInput = () => null,
+    getInputTriggerTimeout = () => 0,
+  } = config;
+
   // Indicate that the element is editable
   editor.setAttribute('contentEditable', true);
 
@@ -102,8 +111,29 @@ export const transformToEditor = (editor, enableToolbar = false, handleUploadFil
     }
   };
 
+  const onInputHandler = () => {
+    let timer = null;
+
+    return (ev) => {
+      if (timer) {
+        clearTimeout(timer);
+      }
+
+      const timeout = getInputTriggerTimeout(ev) || DEFAULT_INPUT_TRIGGER_TIMEOUT;
+
+      timer = setTimeout(() => {
+        console.log(`trigger <onInput>`);
+        onInput(ev);
+        clearTimeout(timer);
+        timer = null;
+      }, timeout);
+    };
+  };
+
   editor.addEventListener('keydown', updateActiveState);
   editor.addEventListener('keyup', updateActiveState);
   editor.addEventListener('click', updateActiveState);
   editor.addEventListener(`paste`, onPaste);
+
+  editor.addEventListener(`keyup`, onInputHandler());
 };
