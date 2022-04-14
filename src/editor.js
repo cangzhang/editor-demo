@@ -12,10 +12,18 @@ const rgbToHex = color => {
 };
 
 const DEFAULT_INPUT_TRIGGER_TIMEOUT = 500;
+const ToolbarActions = [
+  {
+    name: `H1`,
+    actionId: `h1`,
+    action: `insert`,
+    for: `wholeline`,
+    place: `before`,
+  },
+];
 
 export const transformToEditor = (editor, config = {}) => {
   const {
-    enableToolbar = false,
     handleUploadFile = () => Promise.resolve(),
     onInput = () => null,
     getInputTriggerTimeout = () => 0,
@@ -27,6 +35,31 @@ export const transformToEditor = (editor, config = {}) => {
   // Add a custom class
   editor.className = '__editor';
 
+  const performToolbarAction = option => {
+    const node = window.getSelection().focusNode;
+    console.log(node, option);
+  };
+
+  const initToolbar = () => {
+    const toolbar = document.createElement(`div`);
+    toolbar.className = `__editor-toolbar`;
+    for (const i of ToolbarActions) {
+      const button = document.createElement(`button`);
+      button.className = `__editor-toolbar-button`;
+      button.innerHTML = i.name;
+      button.setAttribute(`data-action`, i.actionId);
+      button.setAttribute(`data-place`, i.place);
+      toolbar.appendChild(button);
+      button.addEventListener(`click`, () => {
+        performToolbarAction(i);
+      });
+    }
+
+    editor.parentNode.appendChild(toolbar);
+  };
+
+  initToolbar();
+
   // Create an exec command function
   const execCommand = (commandId, value) => {
     document.execCommand(commandId, false, value);
@@ -35,38 +68,6 @@ export const transformToEditor = (editor, config = {}) => {
 
   // Set default paragraph to <p>
   execCommand('defaultParagraphSeparator', 'p');
-
-  // Create a toolbar
-  if (enableToolbar) {
-    const toolbar = createToolbar(editor.dataset, execCommand);
-    editor.insertAdjacentElement(BEFORE_BEGIN, toolbar);
-  }
-
-  // Listen for events to detect where the caret is
-  const updateActiveState = () => {
-    if (toolbar && enableToolbar) {
-      const toolbarSelects = toolbar.querySelectorAll('select[data-command-id]');
-      for (const select of toolbarSelects) {
-        const value = document.queryCommandValue(select.dataset.commandId);
-        const option = Array.from(select.options).find(option => option.value === value);
-        select.selectedIndex = option ? option.index : -1;
-      }
-
-      const toolbarButtons = toolbar.querySelectorAll('button[data-command-id]');
-      for (const button of toolbarButtons) {
-        const active = document.queryCommandState(button.dataset.commandId);
-        button.classList.toggle('active', active);
-      }
-
-      const inputButtons = toolbar.querySelectorAll('input[data-command-id]');
-      for (const input of inputButtons) {
-        const value = document.queryCommandValue(input.dataset.commandId);
-        input.value = rgbToHex(value);
-      }
-
-      toolbar.addEventListener('click', updateActiveState);
-    }
-  };
 
   const handleStr = item => {
     const { type } = item;
@@ -130,10 +131,10 @@ export const transformToEditor = (editor, config = {}) => {
     };
   };
 
-  editor.addEventListener('keydown', updateActiveState);
-  editor.addEventListener('keyup', updateActiveState);
-  editor.addEventListener('click', updateActiveState);
-  editor.addEventListener(`paste`, onPaste);
+  // editor.addEventListener('keydown', updateActiveState);
+  // editor.addEventListener('keyup', updateActiveState);
+  // editor.addEventListener('click', updateActiveState);
 
+  editor.addEventListener(`paste`, onPaste);
   editor.addEventListener(`keyup`, onInputHandler());
 };
