@@ -11,7 +11,7 @@ const rgbToHex = color => {
   return digits[1] + '#' + rgb.toString(16).padStart(6, '0');
 };
 
-export const transformToEditor = editor => {
+export const transformToEditor = (editor, enableToolbar = false, handleUploadFile = () => Promise.resolve()) => {
   // Indicate that the element is editable
   editor.setAttribute('contentEditable', true);
 
@@ -28,34 +28,82 @@ export const transformToEditor = editor => {
   execCommand('defaultParagraphSeparator', 'p');
 
   // Create a toolbar
-  const toolbar = createToolbar(editor.dataset, execCommand);
-  editor.insertAdjacentElement(BEFORE_BEGIN, toolbar);
+  if (enableToolbar) {
+    const toolbar = createToolbar(editor.dataset, execCommand);
+    editor.insertAdjacentElement(BEFORE_BEGIN, toolbar);
+  }
 
   // Listen for events to detect where the caret is
   const updateActiveState = () => {
-    const toolbarSelects = toolbar.querySelectorAll('select[data-command-id]');
-    for (const select of toolbarSelects) {
-      const value = document.queryCommandValue(select.dataset.commandId);
-      const option = Array.from(select.options).find(
-        option => option.value === value
-      );
-      select.selectedIndex = option ? option.index : -1;
-    }
+    if (toolbar && enableToolbar) {
+      const toolbarSelects = toolbar.querySelectorAll('select[data-command-id]');
+      for (const select of toolbarSelects) {
+        const value = document.queryCommandValue(select.dataset.commandId);
+        const option = Array.from(select.options).find(option => option.value === value);
+        select.selectedIndex = option ? option.index : -1;
+      }
 
-    const toolbarButtons = toolbar.querySelectorAll('button[data-command-id]');
-    for (const button of toolbarButtons) {
-      const active = document.queryCommandState(button.dataset.commandId);
-      button.classList.toggle('active', active);
-    }
+      const toolbarButtons = toolbar.querySelectorAll('button[data-command-id]');
+      for (const button of toolbarButtons) {
+        const active = document.queryCommandState(button.dataset.commandId);
+        button.classList.toggle('active', active);
+      }
 
-    const inputButtons = toolbar.querySelectorAll('input[data-command-id]');
-    for (const input of inputButtons) {
-      const value = document.queryCommandValue(input.dataset.commandId);
-      input.value = rgbToHex(value);
+      const inputButtons = toolbar.querySelectorAll('input[data-command-id]');
+      for (const input of inputButtons) {
+        const value = document.queryCommandValue(input.dataset.commandId);
+        input.value = rgbToHex(value);
+      }
+
+      toolbar.addEventListener('click', updateActiveState);
     }
   };
+
+  const handleStr = item => {
+    const { type } = item;
+
+    if (type === 'text/plain') {
+      item.getAsString(str => {
+        execCommand(`insertText`, str);
+      });
+    }
+
+    if (type === `text/html`) {
+      let div = document.createElement('div');
+      item.getAsString(html => {
+        div.innerHTML = html;
+        execCommand(`insertHTML`, div.innerText);
+        div = null;
+      });
+    }
+  };
+
+  const onPaste = ev => {
+    const { items } = ev.clipboardData;
+    for (const i of items) {
+      const { type, kind } = i;
+      console.log(`__type: ${type}, __kind: ${kind}`);
+      ev.preventDefault();
+
+      if (kind === 'string') {
+        handleStr(i);
+        continue;
+      }
+
+      if (kind === `file`) {
+        if (type.startsWith('image/')) {
+          console.log(`todo! upload image`);
+        }
+
+        if (type.startsWith(`video/`)) {
+          console.info(`todo!: handle video`);
+        }
+      }
+    }
+  };
+
   editor.addEventListener('keydown', updateActiveState);
   editor.addEventListener('keyup', updateActiveState);
   editor.addEventListener('click', updateActiveState);
-  toolbar.addEventListener('click', updateActiveState);
+  editor.addEventListener(`paste`, onPaste);
 };

@@ -1,8 +1,10 @@
 import { transformToEditor } from "./editor";
 import "./style.css";
 
-document.querySelectorAll("[data-tiny-editor]").forEach(transformToEditor);
+// document.querySelectorAll("[data-tiny-editor]").forEach(transformToEditor);
 
 window.__tinyEditor = {
   transformToEditor,
 };
+
+export { transformToEditor };

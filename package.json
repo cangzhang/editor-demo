@@ -1,5 +1,5 @@
 {
-  "name": "tiny-editor",
+  "name": "@oceanfe/tiny-editor",
   "version": "0.3.0",
   "description": "A tiny HTML rich text editor written in vanilla JavaScript",
   "scripts": {
