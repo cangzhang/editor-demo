@@ -1,32 +1,11 @@
-import { createToolbar } from './toolbar';
-import { BEFORE_BEGIN } from './constants';
-
-const rgbToHex = color => {
-  const digits = /(.*?)rgb\((\d+), (\d+), (\d+)\)/.exec(color);
-  const red = parseInt(digits[2]);
-  const green = parseInt(digits[3]);
-  const blue = parseInt(digits[4]);
-  const rgb = blue | (green << 8) | (red << 16);
-
-  return digits[1] + '#' + rgb.toString(16).padStart(6, '0');
-};
-
 const DEFAULT_INPUT_TRIGGER_TIMEOUT = 500;
-const ToolbarActions = [
-  {
-    name: `H1`,
-    actionId: `h1`,
-    action: `insert`,
-    for: `wholeline`,
-    place: `before`,
-  },
-];
+const ToolbarActions = [{
+  name: `H1`, actionId: `h1`, action: `insert`, target: `wholeLine`, position: `before`, value: `# `,
+},];
 
 export const transformToEditor = (editor, config = {}) => {
   const {
-    handleUploadFile = () => Promise.resolve(),
-    onInput = () => null,
-    getInputTriggerTimeout = () => 0,
+    handleUploadFile = () => Promise.resolve(), onInput = () => null, getInputTriggerTimeout = () => 0,
   } = config;
 
   // Indicate that the element is editable
@@ -34,10 +13,49 @@ export const transformToEditor = (editor, config = {}) => {
 
   // Add a custom class
   editor.className = '__editor';
+  initEditor()
 
-  const performToolbarAction = option => {
-    const node = window.getSelection().focusNode;
-    console.log(node, option);
+  function initEditor() {
+    let p = document.createElement(`p`);
+    p.appendChild(document.createElement(`br`));
+    editor.appendChild(p);
+
+    editor.focus();
+
+    let range = document.createRange();
+    let sel = document.getSelection();
+    range.setStart(p, 0);
+    range.collapse(true);
+    sel.removeAllRanges()
+    sel.addRange(range)
+  }
+
+  function findParagraph(node) {
+    while (node = node.parentElement) {
+      if (node.tagName === `P`) {
+        return node;
+      }
+      if (node === editor) {
+        break;
+      }
+    }
+
+    return node;
+  }
+
+  const performToolbarAction = (option = {}) => {
+    editor.focus();
+    const sel = window.getSelection();
+    const { target, position, value } = option;
+
+    if (target === `wholeLine`) {
+      const paragraph = findParagraph(sel.anchorNode);
+      const node = document.createElement(`span`);
+      node.innerHTML = value;
+      if (position === `before`) {
+        paragraph.prepend(node);
+      }
+    }
   };
 
   const initToolbar = () => {
@@ -48,7 +66,7 @@ export const transformToEditor = (editor, config = {}) => {
       button.className = `__editor-toolbar-button`;
       button.innerHTML = i.name;
       button.setAttribute(`data-action`, i.actionId);
-      button.setAttribute(`data-place`, i.place);
+      button.setAttribute(`data-position`, i.position);
       toolbar.appendChild(button);
       button.addEventListener(`click`, () => {
         performToolbarAction(i);
@@ -69,12 +87,30 @@ export const transformToEditor = (editor, config = {}) => {
   // Set default paragraph to <p>
   execCommand('defaultParagraphSeparator', 'p');
 
+  const insertContent = (str) => {
+    const span = document.createElement(`span`);
+    span.innerText = str;
+
+    let sel = window.getSelection();
+    let range = sel.getRangeAt(0);
+    range.deleteContents();
+    range.insertNode(span);
+
+    // set caret to end
+    const textRange = document.createRange();
+    textRange.selectNodeContents(span);
+    textRange.collapse(false);
+    sel.removeAllRanges();
+    sel.addRange(textRange);
+  }
+
   const handleStr = item => {
     const { type } = item;
 
     if (type === 'text/plain') {
       item.getAsString(str => {
-        execCommand(`insertText`, str);
+        insertContent(str);
+        // execCommand(`insertText`, str);
       });
     }
 
@@ -82,7 +118,8 @@ export const transformToEditor = (editor, config = {}) => {
       let div = document.createElement('div');
       item.getAsString(html => {
         div.innerHTML = html;
-        execCommand(`insertHTML`, div.innerText);
+        insertContent(div.innerText);
+        // execCommand(`insertHTML`, div.innerText);
         div = null;
       });
     }
@@ -106,11 +143,22 @@ export const transformToEditor = (editor, config = {}) => {
         }
 
         if (type.startsWith(`video/`)) {
-          console.info(`todo!: handle video`);
+          console.info(`todo! handle video`);
         }
       }
     }
   };
+
+  const onKeyDown = (ev) => {
+    if (ev.key === `Backspace`) {
+      if (editor.childNodes.length === 1) {
+        const p = editor.childNodes[0];
+        if (p.innerHTML === `<br>`) {
+          ev.preventDefault();
+        }
+      }
+    }
+  }
 
   const onInputHandler = () => {
     let timer = null;
@@ -137,4 +185,5 @@ export const transformToEditor = (editor, config = {}) => {
 
   editor.addEventListener(`paste`, onPaste);
   editor.addEventListener(`keyup`, onInputHandler());
+  editor.addEventListener(`keydown`, onKeyDown);
 };
