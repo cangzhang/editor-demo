@@ -1,7 +1,7 @@
 const DEFAULT_INPUT_TRIGGER_TIMEOUT = 500;
 const ToolbarActions = [{
   name: `H1`, actionId: `h1`, action: `insert`, target: `wholeLine`, position: `before`, value: `# `,
-},];
+}];
 
 export const transformToEditor = (editor, config = {}) => {
   const {
@@ -13,7 +13,7 @@ export const transformToEditor = (editor, config = {}) => {
 
   // Add a custom class
   editor.className = '__editor';
-  initEditor()
+  initEditor();
 
   function initEditor() {
     let p = document.createElement(`p`);
@@ -26,8 +26,8 @@ export const transformToEditor = (editor, config = {}) => {
     let sel = document.getSelection();
     range.setStart(p, 0);
     range.collapse(true);
-    sel.removeAllRanges()
-    sel.addRange(range)
+    sel.removeAllRanges();
+    sel.addRange(range);
   }
 
   function findParagraph(node) {
@@ -85,10 +85,11 @@ export const transformToEditor = (editor, config = {}) => {
   };
 
   // Set default paragraph to <p>
-  execCommand('defaultParagraphSeparator', 'p');
+  execCommand('defaultParagraphSeparator', 'span');
 
-  const insertContent = (str) => {
+  function insertContent(str) {
     const span = document.createElement(`span`);
+    span.className = `__editor-span`;
     span.innerText = str;
 
     let sel = window.getSelection();
@@ -98,13 +99,14 @@ export const transformToEditor = (editor, config = {}) => {
 
     // set caret to end
     const textRange = document.createRange();
-    textRange.selectNodeContents(span);
-    textRange.collapse(false);
+    // textRange.selectNodeContents(span);
+    textRange.setStart(span, span.childNodes.length);
+    textRange.collapse(true);
     sel.removeAllRanges();
     sel.addRange(textRange);
   }
 
-  const handleStr = item => {
+  function handlePasteText(item) {
     const { type } = item;
 
     if (type === 'text/plain') {
@@ -123,33 +125,37 @@ export const transformToEditor = (editor, config = {}) => {
         div = null;
       });
     }
-  };
+  }
 
-  const onPaste = ev => {
-    const { items } = ev.clipboardData;
-    for (const i of items) {
-      const { type, kind } = i;
-      console.log(`__type: ${type}, __kind: ${kind}`);
-      ev.preventDefault();
+  function onPaste(ev) {
+    // const { items } = ev.clipboardData;
+    const text = ev.clipboardData.getData(`text`);
+    insertContent(text);
+    ev.preventDefault();
 
-      if (kind === 'string') {
-        handleStr(i);
-        continue;
-      }
+    // for (const i of items) {
+    //   const { type, kind } = i;
+    //   console.log(`__type: ${type}, __kind: ${kind}`);
+    //   ev.preventDefault();
+    //
+    //   if (kind === 'string') {
+    //     handlePasteText(i);
+    //     continue;
+    //   }
+    //
+    //   if (kind === `file`) {
+    //     if (type.startsWith('image/')) {
+    //       console.log(`todo! upload image`);
+    //     }
+    //
+    //     if (type.startsWith(`video/`)) {
+    //       console.info(`todo! handle video`);
+    //     }
+    //   }
+    // }
+  }
 
-      if (kind === `file`) {
-        if (type.startsWith('image/')) {
-          console.log(`todo! upload image`);
-        }
-
-        if (type.startsWith(`video/`)) {
-          console.info(`todo! handle video`);
-        }
-      }
-    }
-  };
-
-  const onKeyDown = (ev) => {
+  function onKeyDown(ev) {
     if (ev.key === `Backspace`) {
       if (editor.childNodes.length === 1) {
         const p = editor.childNodes[0];
@@ -158,9 +164,29 @@ export const transformToEditor = (editor, config = {}) => {
         }
       }
     }
+    if (ev.key === `Enter`) {
+      ev.preventDefault();
+      ev.stopPropagation();
+      handleChangeLine(ev);
+    }
   }
 
-  const onInputHandler = () => {
+  function handleChangeLine() {
+    let sel = window.getSelection();
+    let range = document.createRange();
+    let br = document.createElement(`br`);
+    let br2 = document.createElement(`br`);
+    sel.anchorNode.after(br);
+    sel.anchorNode.after(br2);
+
+    // move caret to end
+    range.setStartAfter(br2);
+    range.collapse(true);
+    sel.removeAllRanges();
+    sel.addRange(range);
+  }
+
+  function onInputHandler() {
     let timer = null;
 
     return (ev) => {

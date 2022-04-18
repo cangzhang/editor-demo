@@ -2,7 +2,7 @@
   background: #ffffff;
   border: solid 1px #e0e0e0;
   color: #000000;
-  font-family: 'serif';
+  font-family: sans-serif;
   margin-top: 10px;
   overflow: scroll;
   padding: 10px;
@@ -10,6 +10,11 @@
 
 .__editor:focus {
   outline: none;
+}
+
+.__editor > p {
+  margin: 0;
+  white-space: pre-wrap;
 }
 
 .__toolbar {
