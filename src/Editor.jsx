@@ -9,8 +9,11 @@ import MyCustomAutoFocusPlugin from './plugins/MyCustomAutoFocusPlugin';
 import editorConfig from './editorConfig';
 import onChange from './onChange';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $createParagraphNode, $createTextNode, $getRoot, $getSelection } from 'lexical';
+import { $createParagraphNode, $createTextNode, $getRoot, $getSelection, LineBreakNode } from 'lexical';
 import { $moveCaretSelection, $selectAll } from '@lexical/selection';
+
+import React from 'react';
+
 
 export default function Editor() {
   return (<LexicalComposer initialConfig={editorConfig}>
@@ -50,14 +53,39 @@ function PlainTextEditor() {
     });
   };
 
-  return (<div className="editor-container" onPaste={onPaste}>
-    <PlainTextPlugin
-      contentEditable={<ContentEditable className="editor-input"/>}
-      placeholder={<Placeholder/>}
-    />
-    <OnChangePlugin onChange={onChange}/>
-    <HistoryPlugin/>
-    <TreeViewPlugin/>
-    <MyCustomAutoFocusPlugin/>
-  </div>);
+  const setH1 = () => {
+    editor.update(() => {
+      const selection = $getSelection();
+      const marker = $createTextNode(`# `);
+      let [p] = selection.getNodes();
+
+      if (!p) {
+        selection.insertNodes([marker]);
+        return;
+      }
+      if (p.getType() === 'linebreak') {
+        selection.insertNodes([marker]);
+        return;
+      }
+      p?.insertBefore(marker);
+    });
+  };
+
+  return (
+    <div>
+      <div className={`toolbar`}>
+        <button onClick={setH1}>H1</button>
+      </div>
+      <div className="editor-container" onPaste={onPaste}>
+        <PlainTextPlugin
+          contentEditable={<ContentEditable className="editor-input"/>}
+          placeholder={<Placeholder/>}
+        />
+        <OnChangePlugin onChange={onChange}/>
+        <HistoryPlugin/>
+        <TreeViewPlugin/>
+        <MyCustomAutoFocusPlugin/>
+      </div>
+    </div>
+  );
 }

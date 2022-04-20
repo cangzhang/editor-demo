@@ -1,3 +1,5 @@
+import React from 'react';
+
 import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext";
 import LexicalTreeView from "@lexical/react/LexicalTreeView";
 
