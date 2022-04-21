@@ -9,7 +9,16 @@ import MyCustomAutoFocusPlugin from './plugins/MyCustomAutoFocusPlugin';
 import editorConfig from './editorConfig';
 import onChange from './onChange';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
-import { $createParagraphNode, $createTextNode, $getRoot, $getSelection, LineBreakNode } from 'lexical';
+import {
+  $createParagraphNode,
+  $createTextNode,
+  $getSelection,
+  $createRangeSelection,
+  $setSelection,
+  $createNodeSelection,
+  RangeSelection,
+  _Point, $getNodeByKey,
+} from 'lexical';
 import { $moveCaretSelection, $selectAll } from '@lexical/selection';
 
 import React from 'react';
@@ -30,6 +39,10 @@ function PlainTextEditor() {
 
   const onPaste = ev => {
     const { files } = ev.clipboardData;
+    if (files.length === 0) {
+      return;
+    }
+
     console.log(files);
     [...files].forEach(i => {
       if (i.type.startsWith(`image/`)) {
@@ -53,7 +66,7 @@ function PlainTextEditor() {
     });
   };
 
-  const setH1 = () => {
+  const applyH1 = () => {
     editor.update(() => {
       const selection = $getSelection();
       const marker = $createTextNode(`# `);
@@ -71,10 +84,26 @@ function PlainTextEditor() {
     });
   };
 
+  const applyToSelection = (marker) => () => {
+    editor.update(() => {
+      let selection = $getSelection();
+      const { anchor, focus } = selection;
+      const anchorOffset = anchor.offset;
+      const focusOffset = focus.offset;
+
+      const anchorNode = $getNodeByKey(anchor.key);
+      const focusNode = $getNodeByKey(focus.key);
+      const text = `${marker}${selection.getTextContent()}${marker}`;
+      selection.insertRawText(text);
+      selection.setTextNodeRange(anchorNode, anchorOffset + 2, focusNode, focusOffset + 2);
+    });
+  };
+
   return (
     <div>
       <div className={`toolbar`}>
-        <button onClick={setH1}>H1</button>
+        <button onClick={applyH1}>H1</button>
+        <button onClick={applyToSelection(`**`)}>B</button>
       </div>
       <div className="editor-container" onPaste={onPaste}>
         <PlainTextPlugin
