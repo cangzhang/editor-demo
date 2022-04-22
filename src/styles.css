@@ -100,7 +100,7 @@ h1 {
   position: relative;
   border-bottom-left-radius: 10px;
   border-bottom-right-radius: 10px;
-  overflow: hidden;
+  overflow: auto;
   line-height: 14px;
 }
 

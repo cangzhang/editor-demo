@@ -16,13 +16,10 @@ import {
   $createRangeSelection,
   $setSelection,
   $createNodeSelection,
-  RangeSelection,
-  _Point, $getNodeByKey,
+  $getNodeByKey, $createLineBreakNode,
 } from 'lexical';
-import { $moveCaretSelection, $selectAll } from '@lexical/selection';
 
 import React from 'react';
-
 
 export default function Editor() {
   return (<LexicalComposer initialConfig={editorConfig}>
@@ -60,42 +57,94 @@ function PlainTextEditor() {
 
   const insetMediaLink = (name) => {
     editor.update(() => {
-      const selection = $getSelection();
+      const sel = $getSelection();
       const textNode = $createTextNode(`![${name}](https://xxx.xx/meida/aa/${name})`);
-      selection.insertNodes([textNode]);
+      sel.insertNodes([textNode]);
     });
   };
 
   const applyH1 = () => {
     editor.update(() => {
-      const selection = $getSelection();
+      const sel = $getSelection();
       const marker = $createTextNode(`# `);
-      let [p] = selection.getNodes();
+      let [p] = sel.getNodes();
 
       if (!p) {
-        selection.insertNodes([marker]);
+        sel.insertNodes([marker]);
         return;
       }
       if (p.getType() === 'linebreak') {
-        selection.insertNodes([marker]);
+        sel.insertNodes([marker]);
         return;
       }
       p?.insertBefore(marker);
     });
   };
 
-  const applyToSelection = (marker) => () => {
+  const applyToSelection = (prefix = ``, suffix = ``) => () => {
     editor.update(() => {
-      let selection = $getSelection();
-      const { anchor, focus } = selection;
+      let sel = $getSelection();
+      const { anchor, focus } = sel;
       const anchorOffset = anchor.offset;
       const focusOffset = focus.offset;
 
       const anchorNode = $getNodeByKey(anchor.key);
       const focusNode = $getNodeByKey(focus.key);
-      const text = `${marker}${selection.getTextContent()}${marker}`;
-      selection.insertRawText(text);
-      selection.setTextNodeRange(anchorNode, anchorOffset + 2, focusNode, focusOffset + 2);
+      const text = `${prefix}${sel.getTextContent()}${suffix}`;
+      sel.insertRawText(text);
+
+      sel.setTextNodeRange(anchorNode, anchorOffset + prefix.length, focusNode, focusOffset + suffix.length);
+    });
+  };
+
+  const addLink = () => {
+    editor.update(() => {
+      let sel = $getSelection();
+      const selectedText = sel.getTextContent();
+      const newText = `[${selectedText}](url)`;
+      sel.insertRawText(newText);
+
+      sel = $getSelection();
+      const { offset } = sel.focus
+      const node = $getNodeByKey(sel.focus.key);
+      sel.setTextNodeRange(node, offset - 4, node, offset - 1);
+    });
+  };
+
+  const addQuote = () => {
+    editor.update(() => {
+      const sel = $getSelection();
+      const nodes = sel.getNodes();
+      nodes.forEach(n => {
+        n.insertBefore($createTextNode(`> `));
+      });
+      // todo! focus
+    });
+  };
+
+  const addCode = () => {
+    editor.update(() => {
+      const sel = $getSelection();
+      let { anchor, focus } = sel;
+      const anchorOffset = anchor.offset;
+      const anchorNode = $getNodeByKey(anchor.key);
+      const anchorKey = anchorNode.getKey();
+      const focusOffset = focus.offset;
+      const focusNode = $getNodeByKey(focus.key);
+      const focusKey = focusNode.getKey();
+
+      const nodes = sel.getNodes();
+      const hasLineBreak = nodes.some(n => n.getType() === 'linebreak');
+
+      const text = sel.getTextContent();
+      if (hasLineBreak) {
+        const newText = `\n\`\`\`\n${text}\n\`\`\`\n`;
+        sel.insertRawText(newText);
+        // todo! focus
+      } else {
+        sel.insertRawText(`\`${text}\``);
+        sel.setTextNodeRange(anchorNode, anchorOffset + 1, focusNode, focusOffset + 1);
+      }
     });
   };
 
@@ -103,7 +152,11 @@ function PlainTextEditor() {
     <div>
       <div className={`toolbar`}>
         <button onClick={applyH1}>H1</button>
-        <button onClick={applyToSelection(`**`)}>B</button>
+        <button onClick={applyToSelection(`**`, `**`)}>B</button>
+        <button onClick={applyToSelection(`*`, `*`)}>U</button>
+        <button onClick={addLink}>Link</button>
+        <button onClick={addQuote}>{`>`}</button>
+        <button onClick={addCode}>{`</>`}</button>
       </div>
       <div className="editor-container" onPaste={onPaste}>
         <PlainTextPlugin
