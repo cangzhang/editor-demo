@@ -105,7 +105,7 @@ function PlainTextEditor() {
       sel.insertRawText(newText);
 
       sel = $getSelection();
-      const { offset } = sel.focus
+      const { offset } = sel.focus;
       const node = $getNodeByKey(sel.focus.key);
       sel.setTextNodeRange(node, offset - 4, node, offset - 1);
     });
@@ -124,7 +124,7 @@ function PlainTextEditor() {
 
   const addCode = () => {
     editor.update(() => {
-      const sel = $getSelection();
+      let sel = $getSelection();
       let { anchor, focus } = sel;
       const anchorOffset = anchor.offset;
       const anchorNode = $getNodeByKey(anchor.key);
@@ -140,11 +140,48 @@ function PlainTextEditor() {
       if (hasLineBreak) {
         const newText = `\n\`\`\`\n${text}\n\`\`\`\n`;
         sel.insertRawText(newText);
-        // todo! focus
+        sel = $getSelection();
+        const node = $getNodeByKey(sel.focus.key);
+        console.log(node.getPreviousSibling());
       } else {
         sel.insertRawText(`\`${text}\``);
         sel.setTextNodeRange(anchorNode, anchorOffset + 1, focusNode, focusOffset + 1);
       }
+    });
+  };
+
+  const toList = (prefix = ``) => () => {
+    editor.update(() => {
+      let sel = $getSelection();
+      const nodes = sel.getNodes();
+
+      if (nodes.length === 0) {
+        sel.insertNodes([$createTextNode(`${prefix.length > 0 ? prefix : '1.'} `)]);
+        return;
+      }
+      if (nodes.length === 1) {
+        let node = nodes[0];
+        node.insertBefore($createLineBreakNode());
+        let n = node.insertBefore($createTextNode(`${prefix.length > 0 ? prefix : '1.'} `));
+        let offset = n.getTextContentSize();
+        sel.setTextNodeRange(n, offset, n, offset);
+        // todo! extra linebreak
+        return;
+      }
+
+      const markedNodes = nodes
+        .filter((n, idx) => {
+          const type = n.getType();
+          return type !== `linebreak` || (type === `linebreak` && nodes[idx - 1]?.getType() === `linebreak`);
+        });
+      markedNodes.forEach((n, idx) => {
+        let t = prefix ? `${prefix} ` : `${idx + 1}. `;
+        n.insertBefore($createTextNode(t));
+      });
+
+      let lastNode = nodes[nodes.length - 1];
+      let offset = lastNode.getTextContentSize();
+      sel.setTextNodeRange(lastNode, offset, lastNode, offset);
     });
   };
 
@@ -153,10 +190,13 @@ function PlainTextEditor() {
       <div className={`toolbar`}>
         <button onClick={applyH1}>H1</button>
         <button onClick={applyToSelection(`**`, `**`)}>B</button>
-        <button onClick={applyToSelection(`*`, `*`)}>U</button>
+        <button onClick={applyToSelection(`*`, `*`)}><em>I</em></button>
         <button onClick={addLink}>Link</button>
         <button onClick={addQuote}>{`>`}</button>
         <button onClick={addCode}>{`</>`}</button>
+        <button onClick={toList(`-`)}>Bullet List</button>
+        <button onClick={toList(``)}>Ordered List</button>
+        <button onClick={toList(`- [ ]`)}>Task List</button>
       </div>
       <div className="editor-container" onPaste={onPaste}>
         <PlainTextPlugin
