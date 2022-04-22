@@ -90,8 +90,7 @@ function PlainTextEditor() {
       let anchorNode = $getNodeByKey(anchor.key);
       let focusNode = $getNodeByKey(focus.key);
 
-      if (anchor.key === focus.key && anchor.offset === focus.offset) {
-        // has no selection
+      if (hasNoSelection(sel)) {
         sel.insertRawText(`${prefix}${suffix}`);
         sel = $getSelection();
         focusNode = $getNodeByKey(sel.focus.key);
@@ -180,11 +179,9 @@ function PlainTextEditor() {
       }
       if (nodes.length === 1) {
         let node = nodes[0];
-        node.insertBefore($createLineBreakNode());
         let n = node.insertBefore($createTextNode(`${prefix.length > 0 ? prefix : '1.'} `));
         let offset = n.getTextContentSize();
         sel.setTextNodeRange(n, offset, n, offset);
-        // todo! extra linebreak
         return;
       }
 
@@ -202,6 +199,11 @@ function PlainTextEditor() {
       let offset = lastNode.getTextContentSize();
       sel.setTextNodeRange(lastNode, offset, lastNode, offset);
     });
+  };
+
+  const hasNoSelection = (sel) => {
+    const { anchor, focus} = sel;
+    return anchor.key === focus.key && anchor.offset === focus.offset;
   };
 
   const insertTable = () => {
