@@ -84,15 +84,24 @@ function PlainTextEditor() {
   const applyToSelection = (prefix = ``, suffix = ``) => () => {
     editor.update(() => {
       let sel = $getSelection();
-      const { anchor, focus } = sel;
-      const anchorOffset = anchor.offset;
-      const focusOffset = focus.offset;
+      let { anchor, focus } = sel;
+      let anchorOffset = anchor.offset;
+      let focusOffset = focus.offset;
+      let anchorNode = $getNodeByKey(anchor.key);
+      let focusNode = $getNodeByKey(focus.key);
 
-      const anchorNode = $getNodeByKey(anchor.key);
-      const focusNode = $getNodeByKey(focus.key);
-      const text = `${prefix}${sel.getTextContent()}${suffix}`;
-      sel.insertRawText(text);
+      if (anchor.key === focus.key && anchor.offset === focus.offset) {
+        // has no selection
+        sel.insertRawText(`${prefix}${suffix}`);
+        sel = $getSelection();
+        focusNode = $getNodeByKey(sel.focus.key);
+        focusOffset = sel.focus.offset;
+        sel.setTextNodeRange(focusNode, focusOffset - suffix.length, focusNode, focusOffset - suffix.length);
+        return;
+      }
 
+      let text = `${prefix}${sel.getTextContent()}${suffix}`;
+      sel.insertNodes([$createTextNode(text)]);
       sel.setTextNodeRange(anchorNode, anchorOffset + prefix.length, focusNode, focusOffset + suffix.length);
     });
   };
@@ -115,6 +124,12 @@ function PlainTextEditor() {
     editor.update(() => {
       const sel = $getSelection();
       const nodes = sel.getNodes();
+
+      if (nodes.length === 0) {
+        sel.insertNodes([$createTextNode(`> `)]);
+        return;
+      }
+
       nodes.forEach(n => {
         n.insertBefore($createTextNode(`> `));
       });
@@ -126,23 +141,27 @@ function PlainTextEditor() {
     editor.update(() => {
       let sel = $getSelection();
       let { anchor, focus } = sel;
-      const anchorOffset = anchor.offset;
-      const anchorNode = $getNodeByKey(anchor.key);
-      const anchorKey = anchorNode.getKey();
-      const focusOffset = focus.offset;
-      const focusNode = $getNodeByKey(focus.key);
-      const focusKey = focusNode.getKey();
+      let anchorOffset = anchor.offset;
+      let anchorNode = $getNodeByKey(anchor.key);
+      let focusOffset = focus.offset;
+      let focusNode = $getNodeByKey(focus.key);
 
       const nodes = sel.getNodes();
-      const hasLineBreak = nodes.some(n => n.getType() === 'linebreak');
+      if (nodes.length === 0) {
+        sel.insertNodes([$createTextNode('``')]);
+        let focusNode = $getNodeByKey(sel.focus.key);
+        let offset = sel.focus.offset;
+        sel.setTextNodeRange(focusNode, offset - 1, focusNode, offset - 1);
+        return;
+      }
 
+      const hasLineBreak = nodes.some(n => n.getType() === 'linebreak');
       const text = sel.getTextContent();
       if (hasLineBreak) {
         const newText = `\n\`\`\`\n${text}\n\`\`\`\n`;
         sel.insertRawText(newText);
         sel = $getSelection();
         const node = $getNodeByKey(sel.focus.key);
-        console.log(node.getPreviousSibling());
       } else {
         sel.insertRawText(`\`${text}\``);
         sel.setTextNodeRange(anchorNode, anchorOffset + 1, focusNode, focusOffset + 1);
@@ -185,18 +204,42 @@ function PlainTextEditor() {
     });
   };
 
+  const insertTable = () => {
+    editor.update(() => {
+      let sel = $getSelection();
+      const nodes = sel.getNodes();
+      const tNode = $createTextNode(`| header | header |
+| ------ | ------ |
+| cell | cell |
+| cell | cell |`);
+      if (nodes.length === 0) {
+        sel.insertNodes([tNode]);
+        return;
+      }
+
+      let node = nodes[nodes.length - 1].insertAfter($createLineBreakNode()).insertAfter(tNode);
+      sel.setTextNodeRange(node, 0, node, 0);
+    });
+  };
+
   return (
     <div>
       <div className={`toolbar`}>
-        <button onClick={applyH1}>H1</button>
-        <button onClick={applyToSelection(`**`, `**`)}>B</button>
-        <button onClick={applyToSelection(`*`, `*`)}><em>I</em></button>
-        <button onClick={addLink}>Link</button>
-        <button onClick={addQuote}>{`>`}</button>
-        <button onClick={addCode}>{`</>`}</button>
-        <button onClick={toList(`-`)}>Bullet List</button>
-        <button onClick={toList(``)}>Ordered List</button>
-        <button onClick={toList(`- [ ]`)}>Task List</button>
+        <div>
+          <button onClick={applyH1}>H1</button>
+          <button onClick={applyToSelection(`**`, `**`)}>B</button>
+          <button onClick={applyToSelection(`*`, `*`)}><em>I</em></button>
+          <button onClick={addLink}>Link</button>
+          <button onClick={addCode}>{`</>`}</button>
+          <button onClick={insertTable}>Table</button>
+        </div>
+
+        <div>
+          <button onClick={toList(`>`)}>{`>`}</button>
+          <button onClick={toList(`-`)}>Bullet List</button>
+          <button onClick={toList(``)}>Ordered List</button>
+          <button onClick={toList(`- [ ]`)}>Task List</button>
+        </div>
       </div>
       <div className="editor-container" onPaste={onPaste}>
         <PlainTextPlugin
