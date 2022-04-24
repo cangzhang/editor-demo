@@ -1,4 +1,3 @@
-import { EmojiNode } from "./nodes/EmojiNode";
 import ExampleTheme from "./themes/ExampleTheme";
 
 const editorConfig = {
@@ -6,7 +5,6 @@ const editorConfig = {
   onError(error) {
     throw error;
   },
-  nodes: [EmojiNode]
 };
 
 export default editorConfig;

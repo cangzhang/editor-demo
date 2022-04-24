@@ -3,25 +3,17 @@ import PlainTextPlugin from '@lexical/react/LexicalPlainTextPlugin';
 import ContentEditable from '@lexical/react/LexicalContentEditable';
 import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
 import OnChangePlugin from '@lexical/react/LexicalOnChangePlugin';
-import TreeViewPlugin from './plugins/TreeViewPlugin';
-
-import MyCustomAutoFocusPlugin from './plugins/MyCustomAutoFocusPlugin';
-import editorConfig from './editorConfig';
-import onChange from './onChange';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
-  $createParagraphNode,
-  $createTextNode,
-  $getSelection,
-  $createRangeSelection,
-  $setSelection,
-  $createNodeSelection,
-  $getNodeByKey, $createLineBreakNode,
+  $createTextNode, $getSelection, $getNodeByKey, $createLineBreakNode,
 } from 'lexical';
+import React, { useEffect, useState } from 'react';
 
-import React from 'react';
+import TreeViewPlugin from './plugins/TreeViewPlugin';
+import editorConfig from './editorConfig';
+import onChange from './onChange';
 
-export default function Editor() {
+export function Editor() {
   return (<LexicalComposer initialConfig={editorConfig}>
     <PlainTextEditor/>
   </LexicalComposer>);
@@ -31,8 +23,56 @@ function Placeholder() {
   return <div className="editor-placeholder">Enter some plain text...</div>;
 }
 
-function PlainTextEditor() {
+function PlainTextEditor({}) {
   const [editor] = useLexicalComposerContext();
+
+  useEffect(() => {
+    let removeListener = editor.registerUpdateListener(({ editorState }) => {
+      editorState.read(() => {
+        let sel = $getSelection();
+        if (!sel) {
+          return;
+        }
+
+        let node = $getNodeByKey(sel.focus.key);
+        let content = node.getTextContent();
+        let offset = sel.focus.offset;
+        let textAfter = ``;
+        let textBefore = ``;
+        let char = ``;
+        while (offset >= 0) {
+          char = content.charAt(offset - 1);
+          if (char === ` `) {
+            break;
+          }
+          if (char === `@` || char === `#`) {
+            textAfter = content.substring(offset, sel.focus.offset);
+            let o = offset;
+            while (o >= 0) {
+              if (content.charAt(o) === ` `) {
+                textBefore = content.substring(o + 1, offset - 1);
+                break;
+              }
+              textBefore = content.substring(o, offset - 1);
+              o--;
+            }
+            break;
+          }
+          offset -= 1;
+        }
+
+        handleSuggestion(char, textBefore, textAfter);
+      });
+    });
+
+    return () => {
+      removeListener();
+    };
+  }, [editor]);
+
+  const handleSuggestion = (tag, scope, query) => {
+    console.log(tag, scope, query);
+  };
 
   const onPaste = ev => {
     const { files } = ev.clipboardData;
@@ -119,23 +159,6 @@ function PlainTextEditor() {
     });
   };
 
-  const addQuote = () => {
-    editor.update(() => {
-      const sel = $getSelection();
-      const nodes = sel.getNodes();
-
-      if (nodes.length === 0) {
-        sel.insertNodes([$createTextNode(`> `)]);
-        return;
-      }
-
-      nodes.forEach(n => {
-        n.insertBefore($createTextNode(`> `));
-      });
-      // todo! focus
-    });
-  };
-
   const addCode = () => {
     editor.update(() => {
       let sel = $getSelection();
@@ -202,7 +225,7 @@ function PlainTextEditor() {
   };
 
   const hasNoSelection = (sel) => {
-    const { anchor, focus} = sel;
+    const { anchor, focus } = sel;
     return anchor.key === focus.key && anchor.offset === focus.offset;
   };
 
@@ -251,7 +274,6 @@ function PlainTextEditor() {
         <OnChangePlugin onChange={onChange}/>
         <HistoryPlugin/>
         <TreeViewPlugin/>
-        <MyCustomAutoFocusPlugin/>
       </div>
     </div>
   );
