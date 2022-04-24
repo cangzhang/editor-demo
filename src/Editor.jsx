@@ -5,9 +5,10 @@ import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
 import OnChangePlugin from '@lexical/react/LexicalOnChangePlugin';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
-  $createTextNode, $getSelection, $getNodeByKey, $createLineBreakNode,
+  $createTextNode, $getSelection, $getNodeByKey, $createLineBreakNode, UNDO_COMMAND,
 } from 'lexical';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import ReactDOM from 'react-dom';
 
 import TreeViewPlugin from './plugins/TreeViewPlugin';
 import editorConfig from './editorConfig';
@@ -23,14 +24,22 @@ function Placeholder() {
   return <div className="editor-placeholder">Enter some plain text...</div>;
 }
 
-function PlainTextEditor({}) {
+function PlainTextEditor() {
   const [editor] = useLexicalComposerContext();
+  const suggestionListRef = useRef(null);
+  const editorRef = useRef(null);
+
+  const [showSuggestionMenu, toggleSuggestionMenu] = useState(false);
+  const [suggestionList, setSuggestionList] = useState([]);
+  const [queryParams, setQueryParams] = useState([]);
+  const [caretRect, setCaretRect] = useState(null);
 
   useEffect(() => {
     let removeListener = editor.registerUpdateListener(({ editorState }) => {
       editorState.read(() => {
         let sel = $getSelection();
-        if (!sel) {
+        if (!sel?.focus) {
+          toggleSuggestionMenu(false);
           return;
         }
 
@@ -46,13 +55,17 @@ function PlainTextEditor({}) {
             break;
           }
           if (char === `@` || char === `#`) {
+            toggleSuggestionMenu(true);
+
             textAfter = content.substring(offset, sel.focus.offset);
             let o = offset;
             while (o >= 0) {
-              if (content.charAt(o) === ` `) {
+              let start = content.charAt(o);
+              if (start === ` ` || start === char) {
                 textBefore = content.substring(o + 1, offset - 1);
                 break;
               }
+
               textBefore = content.substring(o, offset - 1);
               o--;
             }
@@ -68,11 +81,61 @@ function PlainTextEditor({}) {
     return () => {
       removeListener();
     };
-  }, [editor]);
+  }, [editor, showSuggestionMenu]);
 
-  const handleSuggestion = (tag, scope, query) => {
-    console.log(tag, scope, query);
+  useEffect(() => {
+    editorRef.current?.addEventListener('keydown', onKeyDown, true);
+
+    return () => {
+      editorRef.current?.removeEventListener(`keydown`, onKeyDown, true);
+    };
+  }, [showSuggestionMenu]);
+
+  const handleSuggestion = useCallback((tag, scope, query) => {
+    if (tag !== `@` && tag !== `#`) {
+      toggleSuggestionMenu(false);
+      return;
+    }
+
+    toggleSuggestionMenu(true);
+    setQueryParams([tag, scope, query]);
+    onCaretChange();
+  }, [showSuggestionMenu]);
+
+  const insertSuggestion = () => {
+    editor.update(() => {
+      let sel = $getSelection();
+      sel.insertRawText(`suggestion1 `);
+    });
   };
+
+  const onCaretChange = () => {
+    let selection = window.getSelection();
+    let range = selection.getRangeAt(0);
+    let rect = range.getClientRects()[0];
+    setCaretRect(rect);
+  };
+
+  const onKeyDown = useCallback(ev => {
+    if (ev.key === `Enter`) {
+      if (showSuggestionMenu) {
+        ev.preventDefault();
+        ev.stopPropagation();
+        insertSuggestion();
+      }
+    }
+
+    if (ev.key === `Escape`) {
+      toggleSuggestionMenu(false);
+    }
+
+    if (ev.key === `ArrowDown` || ev.key === `ArrowUp`) {
+      if (showSuggestionMenu) {
+        ev.preventDefault();
+        ev.stopPropagation();
+      }
+    }
+  }, [showSuggestionMenu]);
 
   const onPaste = ev => {
     const { files } = ev.clipboardData;
@@ -247,6 +310,42 @@ function PlainTextEditor({}) {
     });
   };
 
+  const renderList = useCallback(() => {
+    if (!showSuggestionMenu || !caretRect) {
+      return null;
+    }
+
+    let [tag, scope, query] = queryParams;
+    return (
+      <div
+        className={`__editor-suggestion`}
+        style={{
+          position: `fixed`,
+          top: `${parseInt(caretRect.top + 20, 10)}px`,
+          left: `${parseInt(caretRect.left, 10)}px`,
+          border: `1px solid #ccc`,
+          display: `flex`,
+          width: `10rem`,
+          overflow: `auto`,
+        }}
+      >
+        <ul>
+          <li key={1}>{`${tag}${scope}::${query}`}</li>
+          <li key={2}>{`${tag}${scope}::${query}`}</li>
+          <li key={3}>{`${tag}${scope}::${query}`}</li>
+        </ul>
+      </div>
+    );
+  }, [showSuggestionMenu, queryParams, caretRect]);
+
+  const renderSuggestionMenu = () => {
+    if (!suggestionListRef.current) {
+      return null;
+    }
+
+    return ReactDOM.createPortal(renderList(), suggestionListRef.current);
+  };
+
   return (
     <div>
       <div className={`toolbar`}>
@@ -266,7 +365,7 @@ function PlainTextEditor({}) {
           <button onClick={toList(`- [ ]`)}>Task List</button>
         </div>
       </div>
-      <div className="editor-container" onPaste={onPaste}>
+      <div className="editor-container" onPaste={onPaste} ref={editorRef}>
         <PlainTextPlugin
           contentEditable={<ContentEditable className="editor-input"/>}
           placeholder={<Placeholder/>}
@@ -275,6 +374,7 @@ function PlainTextEditor({}) {
         <HistoryPlugin/>
         <TreeViewPlugin/>
       </div>
+      {showSuggestionMenu && <div ref={suggestionListRef}>{renderSuggestionMenu()}</div>}
     </div>
   );
 }
