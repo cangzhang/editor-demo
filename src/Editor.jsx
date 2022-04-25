@@ -46,8 +46,8 @@ function PlainTextEditor() {
         let node = $getNodeByKey(sel.focus.key);
         let content = node.getTextContent();
         let offset = sel.focus.offset;
-        let textAfter = ``;
-        let textBefore = ``;
+        let scope = ``;
+        let query = ``;
         let char = ``;
         while (offset >= 0) {
           char = content.charAt(offset - 1);
@@ -57,16 +57,17 @@ function PlainTextEditor() {
           if (char === `@` || char === `#`) {
             toggleSuggestionMenu(true);
 
-            textAfter = content.substring(offset, sel.focus.offset);
+            query = content.substring(offset, sel.focus.offset);
             let o = offset;
             while (o >= 0) {
               let start = content.charAt(o);
-              if (start === ` ` || start === char) {
-                textBefore = content.substring(o + 1, offset - 1);
+              if (start === ` `) {
+                // todo! multiple #/@
+                scope = content.substring(o + 1, offset - 1);
                 break;
               }
 
-              textBefore = content.substring(o, offset - 1);
+              scope = content.substring(o, offset - 1);
               o--;
             }
             break;
@@ -74,7 +75,7 @@ function PlainTextEditor() {
           offset -= 1;
         }
 
-        handleSuggestion(char, textBefore, textAfter);
+        handleSuggestion(char, scope, query);
       });
     });
 
@@ -89,7 +90,7 @@ function PlainTextEditor() {
     return () => {
       editorRef.current?.removeEventListener(`keydown`, onKeyDown, true);
     };
-  }, [showSuggestionMenu]);
+  }, [showSuggestionMenu, queryParams]);
 
   const handleSuggestion = useCallback((tag, scope, query) => {
     if (tag !== `@` && tag !== `#`) {
@@ -102,12 +103,18 @@ function PlainTextEditor() {
     onCaretChange();
   }, [showSuggestionMenu]);
 
-  const insertSuggestion = () => {
+  const insertSuggestion = useCallback(([tag, _scope, query]) => {
     editor.update(() => {
       let sel = $getSelection();
-      sel.insertRawText(`suggestion1 `);
+      let node = $getNodeByKey(sel.focus.key);
+      let content = node.getTextContent();
+      let index = content.lastIndexOf(tag + query);
+      content = content.substring(0, index) + `${tag}suggestion 1`;
+      node = node.replace($createTextNode(content));
+      sel.setTextNodeRange(node, node.getTextContentSize(), node, node.getTextContentSize());
+      toggleSuggestionMenu(false);
     });
-  };
+  }, [editor]);
 
   const onCaretChange = () => {
     let selection = window.getSelection();
@@ -121,7 +128,7 @@ function PlainTextEditor() {
       if (showSuggestionMenu) {
         ev.preventDefault();
         ev.stopPropagation();
-        insertSuggestion();
+        insertSuggestion(queryParams);
       }
     }
 
@@ -135,7 +142,7 @@ function PlainTextEditor() {
         ev.stopPropagation();
       }
     }
-  }, [showSuggestionMenu]);
+  }, [showSuggestionMenu, queryParams]);
 
   const onPaste = ev => {
     const { files } = ev.clipboardData;
