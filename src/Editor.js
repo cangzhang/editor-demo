@@ -93,14 +93,8 @@ function PlainTextEditor() {
     };
   }, [showSuggestionMenu, queryParams]);
 
-  useEffect(() => {
-    if (!showSuggestionMenu) {
-      setActiveSuggestion(0);
-    }
-  }, [showSuggestionMenu]);
-
-  const onResetActive = () => {
-    setActiveSuggestion(0);
+  const onResetActive = (idx) => {
+    setActiveSuggestion(idx);
   };
 
   const onActiveSuggestionChanged = (val) => {
@@ -118,7 +112,7 @@ function PlainTextEditor() {
     onCaretChange();
   }, [showSuggestionMenu]);
 
-  const insertSuggestion = useCallback(([tag, _scope, query], val) => {
+  const applySuggestion = useCallback(([tag, _scope, query], val) => {
     editor.update(() => {
       let sel = $getSelection();
       let node = $getNodeByKey(sel.focus.key);
@@ -130,6 +124,14 @@ function PlainTextEditor() {
       toggleSuggestionMenu(false);
     });
   }, [editor]);
+
+  const moveSuggestionUp = () => {
+    setActiveSuggestion(i => i - 1);
+  };
+
+  const moveSuggestionDown = () => {
+    setActiveSuggestion(i => i + 1);
+  };
 
   const onCaretChange = () => {
     let selection = window.getSelection();
@@ -143,7 +145,8 @@ function PlainTextEditor() {
       if (showSuggestionMenu) {
         ev.preventDefault();
         ev.stopPropagation();
-        insertSuggestion(queryParams, curSuggestion);
+        console.log(curSuggestion);
+        applySuggestion(queryParams, curSuggestion);
       }
     }
 
@@ -156,11 +159,11 @@ function PlainTextEditor() {
         ev.preventDefault();
         ev.stopPropagation();
         switch (ev.key) {
-          case `ArrowDown`:
-            setActiveSuggestion(i => i + 1);
-            break;
           case `ArrowUp`:
-            setActiveSuggestion(i => i - 1);
+            moveSuggestionUp();
+            break;
+          case `ArrowDown`:
+            moveSuggestionDown();
             break;
         }
       }
@@ -355,6 +358,9 @@ function PlainTextEditor() {
         activeSuggestion={activeSuggestion}
         onResetActive={onResetActive}
         onActiveSuggestionChanged={onActiveSuggestionChanged}
+        applySuggestion={() => applySuggestion(queryParams, curSuggestion)}
+        moveUp={moveSuggestionUp}
+        moveDown={moveSuggestionDown}
       />
     );
   };
