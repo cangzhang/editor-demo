@@ -28,12 +28,16 @@ function PlainTextEditor() {
   const [editor] = useLexicalComposerContext();
   const suggestionListRef = useRef(null);
   const editorRef = useRef(null);
+  const curSuggestion = useRef(``);
 
   const [showSuggestionMenu, toggleSuggestionMenu] = useState(false);
   const [queryParams, setQueryParams] = useState([]);
   const [caretRect, setCaretRect] = useState(null);
   const [activeSuggestion, setActiveSuggestion] = useState(0);
-  const [curSuggestion, setCurSuggestion] = useState(``);
+
+  useEffect(() => {
+    editor.focus();
+  }, []);
 
   useEffect(() => {
     let removeListener = editor.registerUpdateListener(({ editorState }) => {
@@ -98,7 +102,7 @@ function PlainTextEditor() {
   };
 
   const onActiveSuggestionChanged = (val) => {
-    setCurSuggestion(val);
+    curSuggestion.current = val;
   };
 
   const handleSuggestion = useCallback((tag, scope, query) => {
@@ -113,6 +117,7 @@ function PlainTextEditor() {
   }, [showSuggestionMenu]);
 
   const applySuggestion = useCallback(([tag, _scope, query], val) => {
+    console.log(`selected: ${val}`);
     editor.update(() => {
       let sel = $getSelection();
       let node = $getNodeByKey(sel.focus.key);
@@ -145,8 +150,7 @@ function PlainTextEditor() {
       if (showSuggestionMenu) {
         ev.preventDefault();
         ev.stopPropagation();
-        console.log(curSuggestion);
-        applySuggestion(queryParams, curSuggestion);
+        applySuggestion(queryParams, curSuggestion.current);
       }
     }
 
@@ -168,7 +172,7 @@ function PlainTextEditor() {
         }
       }
     }
-  }, [showSuggestionMenu, queryParams, curSuggestion]);
+  }, [showSuggestionMenu, queryParams, applySuggestion]);
 
   const onPaste = ev => {
     const { files } = ev.clipboardData;
@@ -358,7 +362,7 @@ function PlainTextEditor() {
         activeSuggestion={activeSuggestion}
         onResetActive={onResetActive}
         onActiveSuggestionChanged={onActiveSuggestionChanged}
-        applySuggestion={() => applySuggestion(queryParams, curSuggestion)}
+        applySuggestion={() => applySuggestion(queryParams, curSuggestion.current)}
         moveUp={moveSuggestionUp}
         moveDown={moveSuggestionDown}
       />

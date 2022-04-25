@@ -11,14 +11,12 @@ export function SuggestionList({
                                  onActiveSuggestionChanged,
                                  moveUp,
                                  moveDown,
+                                 applySuggestion,
                                }) {
   const [list, setList] = useState([]);
   const itemRefs = useRef([]);
 
   useEffect(() => {
-    if (showSuggestionMenu) {
-      makeList();
-    }
     onResetActive(0);
   }, [showSuggestionMenu]);
 
@@ -41,16 +39,22 @@ export function SuggestionList({
     onActiveSuggestionChanged(list[activeSuggestion]?.value);
   }, [queryParams, list]);
 
-  const makeList = useCallback(() => {
+  useEffect(() => {
+    if (!showSuggestionMenu) {
+      setList([]);
+      return;
+    }
+
     const [_tag, _scope, query] = queryParams;
     let l = [];
     for (let i = 0; i <= 5; i++) {
       l.push({
-        text: `Item ${i} for ${query}`, value: `item-${i + 1}`,
+        text: `Item ${i} for ${query}`,
+        value: `item-${i}`,
       });
     }
     setList(l);
-  }, [queryParams]);
+  }, [queryParams, showSuggestionMenu]);
 
   const onKeyPressed = (ev) => {
     switch (ev.key) {
@@ -64,7 +68,13 @@ export function SuggestionList({
     }
   };
 
-  if (!showSuggestionMenu || !caretRect) {
+  const onClickItem = (i, idx) => () => {
+    onResetActive(idx);
+    onActiveSuggestionChanged(i.value);
+    applySuggestion();
+  };
+
+  if (!showSuggestionMenu || !caretRect || !list.length) {
     return null;
   }
 
@@ -87,9 +97,7 @@ export function SuggestionList({
     <ul>
       {list.map((i, idx) => {
         return <li
-          onClick={() => {
-            onResetActive(idx);
-          }}
+          onClick={onClickItem(i, idx)}
           key={idx}
           ref={(el) => {
             itemRefs.current[idx] = el;
