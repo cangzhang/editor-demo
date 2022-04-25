@@ -8,11 +8,11 @@ import {
   $createTextNode, $getSelection, $getNodeByKey, $createLineBreakNode, UNDO_COMMAND,
 } from 'lexical';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import ReactDOM from 'react-dom';
 
 import TreeViewPlugin from './plugins/TreeViewPlugin';
 import editorConfig from './editorConfig';
 import onChange from './onChange';
+import { SuggestionList } from './SuggestionList.js';
 
 export function Editor() {
   return (<LexicalComposer initialConfig={editorConfig}>
@@ -30,9 +30,10 @@ function PlainTextEditor() {
   const editorRef = useRef(null);
 
   const [showSuggestionMenu, toggleSuggestionMenu] = useState(false);
-  const [suggestionList, setSuggestionList] = useState([]);
   const [queryParams, setQueryParams] = useState([]);
   const [caretRect, setCaretRect] = useState(null);
+  const [activeSuggestion, setActiveSuggestion] = useState(0);
+  const [curSuggestion, setCurSuggestion] = useState(``);
 
   useEffect(() => {
     let removeListener = editor.registerUpdateListener(({ editorState }) => {
@@ -92,6 +93,20 @@ function PlainTextEditor() {
     };
   }, [showSuggestionMenu, queryParams]);
 
+  useEffect(() => {
+    if (!showSuggestionMenu) {
+      setActiveSuggestion(0);
+    }
+  }, [showSuggestionMenu]);
+
+  const onResetActive = () => {
+    setActiveSuggestion(0);
+  };
+
+  const onActiveSuggestionChanged = (val) => {
+    setCurSuggestion(val);
+  };
+
   const handleSuggestion = useCallback((tag, scope, query) => {
     if (tag !== `@` && tag !== `#`) {
       toggleSuggestionMenu(false);
@@ -103,13 +118,13 @@ function PlainTextEditor() {
     onCaretChange();
   }, [showSuggestionMenu]);
 
-  const insertSuggestion = useCallback(([tag, _scope, query]) => {
+  const insertSuggestion = useCallback(([tag, _scope, query], val) => {
     editor.update(() => {
       let sel = $getSelection();
       let node = $getNodeByKey(sel.focus.key);
       let content = node.getTextContent();
       let index = content.lastIndexOf(tag + query);
-      content = content.substring(0, index) + `${tag}suggestion 1`;
+      content = content.substring(0, index) + `${tag}${val} `;
       node = node.replace($createTextNode(content));
       sel.setTextNodeRange(node, node.getTextContentSize(), node, node.getTextContentSize());
       toggleSuggestionMenu(false);
@@ -128,7 +143,7 @@ function PlainTextEditor() {
       if (showSuggestionMenu) {
         ev.preventDefault();
         ev.stopPropagation();
-        insertSuggestion(queryParams);
+        insertSuggestion(queryParams, curSuggestion);
       }
     }
 
@@ -140,9 +155,17 @@ function PlainTextEditor() {
       if (showSuggestionMenu) {
         ev.preventDefault();
         ev.stopPropagation();
+        switch (ev.key) {
+          case `ArrowDown`:
+            setActiveSuggestion(i => i + 1);
+            break;
+          case `ArrowUp`:
+            setActiveSuggestion(i => i - 1);
+            break;
+        }
       }
     }
-  }, [showSuggestionMenu, queryParams]);
+  }, [showSuggestionMenu, queryParams, curSuggestion]);
 
   const onPaste = ev => {
     const { files } = ev.clipboardData;
@@ -252,8 +275,9 @@ function PlainTextEditor() {
       if (hasLineBreak) {
         const newText = `\n\`\`\`\n${text}\n\`\`\`\n`;
         sel.insertRawText(newText);
-        sel = $getSelection();
-        const node = $getNodeByKey(sel.focus.key);
+        // sel = $getSelection();
+        // const node = $getNodeByKey(sel.focus.key);
+        // todo! move caret
       } else {
         sel.insertRawText(`\`${text}\``);
         sel.setTextNodeRange(anchorNode, anchorOffset + 1, focusNode, focusOffset + 1);
@@ -317,40 +341,22 @@ function PlainTextEditor() {
     });
   };
 
-  const renderList = useCallback(() => {
-    if (!showSuggestionMenu || !caretRect) {
-      return null;
-    }
-
-    let [tag, scope, query] = queryParams;
-    return (
-      <div
-        className={`__editor-suggestion`}
-        style={{
-          position: `fixed`,
-          top: `${parseInt(caretRect.top + 20, 10)}px`,
-          left: `${parseInt(caretRect.left, 10)}px`,
-          border: `1px solid #ccc`,
-          display: `flex`,
-          width: `10rem`,
-          overflow: `auto`,
-        }}
-      >
-        <ul>
-          <li key={1}>{`${tag}${scope}::${query}`}</li>
-          <li key={2}>{`${tag}${scope}::${query}`}</li>
-          <li key={3}>{`${tag}${scope}::${query}`}</li>
-        </ul>
-      </div>
-    );
-  }, [showSuggestionMenu, queryParams, caretRect]);
-
   const renderSuggestionMenu = () => {
     if (!suggestionListRef.current) {
       return null;
     }
 
-    return ReactDOM.createPortal(renderList(), suggestionListRef.current);
+    return (
+      <SuggestionList
+        mountEl={suggestionListRef.current}
+        showSuggestionMenu={showSuggestionMenu}
+        queryParams={queryParams}
+        caretRect={caretRect}
+        activeSuggestion={activeSuggestion}
+        onResetActive={onResetActive}
+        onActiveSuggestionChanged={onActiveSuggestionChanged}
+      />
+    );
   };
 
   return (
