@@ -5,14 +5,15 @@ import { HistoryPlugin } from '@lexical/react/LexicalHistoryPlugin';
 import OnChangePlugin from '@lexical/react/LexicalOnChangePlugin';
 import { useLexicalComposerContext } from '@lexical/react/LexicalComposerContext';
 import {
-  $createTextNode, $getSelection, $getNodeByKey, $createLineBreakNode, UNDO_COMMAND,
+  $createTextNode, $getSelection, $getNodeByKey, $createLineBreakNode,
 } from 'lexical';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 
 import TreeViewPlugin from './plugins/TreeViewPlugin';
 import editorConfig from './editorConfig';
 import onChange from './onChange';
-import { SuggestionList } from './SuggestionList.js';
+import { SuggestionList } from './SuggestionList';
+import { ImageUploader } from './ImageUploader';
 
 export function Editor() {
   return (<LexicalComposer initialConfig={editorConfig}>
@@ -34,6 +35,7 @@ function PlainTextEditor() {
   const [queryParams, setQueryParams] = useState([]);
   const [caretRect, setCaretRect] = useState(null);
   const [activeSuggestion, setActiveSuggestion] = useState(0);
+  const [showImageUploader, toggleImageUploader] = useState(false);
 
   useEffect(() => {
     editor.focus();
@@ -96,6 +98,14 @@ function PlainTextEditor() {
       editorRef.current?.removeEventListener(`keydown`, onKeyDown, true);
     };
   }, [showSuggestionMenu, queryParams]);
+
+  useEffect(() => {
+    window.addEventListener(`resize`, onCaretChange);
+
+    return () => {
+      window.removeEventListener(`resize`, onCaretChange);
+    };
+  }, []);
 
   const onResetActive = (idx) => {
     setActiveSuggestion(idx);
@@ -348,6 +358,10 @@ function PlainTextEditor() {
     });
   };
 
+  const onUploadImage = () => {
+    toggleImageUploader(s => !s);
+  };
+
   const renderSuggestionMenu = () => {
     if (!suggestionListRef.current) {
       return null;
@@ -387,6 +401,10 @@ function PlainTextEditor() {
           <button onClick={toList(``)}>Ordered List</button>
           <button onClick={toList(`- [ ]`)}>Task List</button>
         </div>
+
+        <div>
+          <button onClick={onUploadImage}>Upload Image</button>
+        </div>
       </div>
       <div className="editor-container" onPaste={onPaste} ref={editorRef}>
         <PlainTextPlugin
@@ -396,6 +414,7 @@ function PlainTextEditor() {
         <OnChangePlugin onChange={onChange}/>
         <HistoryPlugin/>
         <TreeViewPlugin/>
+        {showImageUploader && <ImageUploader/>}
       </div>
       {showSuggestionMenu && <div ref={suggestionListRef}>{renderSuggestionMenu()}</div>}
     </div>

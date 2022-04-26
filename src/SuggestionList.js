@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 
 const SAFE_MARGIN = 30;
@@ -25,23 +25,15 @@ export function SuggestionList({
   });
 
   useEffect(() => {
-    const container = containerRef.current;
-    if (!container) {
-      return;
-    }
+    window.addEventListener(`resize`, onRePosition);
 
-    const { offsetWidth } = container;
-    if (caretRect.left + offsetWidth + SAFE_MARGIN > window.innerWidth) {
-      setRect({
-        left: window.innerWidth - SAFE_MARGIN - offsetWidth,
-        top: caretRect.top,
-      });
-    } else {
-      setRect({
-        left: caretRect.left,
-        top: caretRect.top,
-      });
-    }
+    return () => {
+      window.removeEventListener(`resize`, onRePosition);
+    };
+  }, []);
+
+  useEffect(() => {
+    onRePosition();
   }, [caretRect]);
 
   useEffect(() => {
@@ -83,6 +75,26 @@ export function SuggestionList({
     }
     setList(l);
   }, [queryParams, showSuggestionMenu]);
+
+  const onRePosition = useCallback(() => {
+    const container = containerRef.current;
+    if (!container || !caretRect) {
+      return;
+    }
+
+    const { offsetWidth } = container;
+    if (caretRect.left + offsetWidth + SAFE_MARGIN > window.innerWidth) {
+      setRect({
+        left: window.innerWidth - SAFE_MARGIN - offsetWidth,
+        top: caretRect.top,
+      });
+    } else {
+      setRect({
+        left: caretRect.left,
+        top: caretRect.top,
+      });
+    }
+  }, [caretRect]);
 
   const onKeyPressed = (ev) => {
     switch (ev.key) {
