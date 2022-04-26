@@ -1,6 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 
+const SAFE_MARGIN = 30;
+
 export function SuggestionList({
                                  showSuggestionMenu,
                                  caretRect,
@@ -13,8 +15,34 @@ export function SuggestionList({
                                  moveDown,
                                  applySuggestion,
                                }) {
-  const [list, setList] = useState([]);
   const itemRefs = useRef([]);
+  const containerRef = useRef(null);
+
+  const [list, setList] = useState([]);
+  const [rect, setRect] = useState({
+    left: caretRect?.left,
+    top: caretRect?.top,
+  });
+
+  useEffect(() => {
+    const container = containerRef.current;
+    if (!container) {
+      return;
+    }
+
+    const { offsetWidth } = container;
+    if (caretRect.left + offsetWidth + SAFE_MARGIN > window.innerWidth) {
+      setRect({
+        left: window.innerWidth - SAFE_MARGIN - offsetWidth,
+        top: caretRect.top,
+      });
+    } else {
+      setRect({
+        left: caretRect.left,
+        top: caretRect.top,
+      });
+    }
+  }, [caretRect]);
 
   useEffect(() => {
     onResetActive(0);
@@ -74,18 +102,19 @@ export function SuggestionList({
     applySuggestion();
   };
 
-  if (!showSuggestionMenu || !caretRect || !list.length) {
+  if (!showSuggestionMenu || !rect || !list.length) {
     return null;
   }
 
   // let [tag, scope, query] = queryParams;
   return ReactDOM.createPortal(<div
+    ref={containerRef}
     className={`__editor-suggestion`}
     onKeyDown={onKeyPressed}
     style={{
       position: `fixed`,
-      top: `${parseInt(caretRect.top + 20, 10)}px`,
-      left: `${parseInt(caretRect.left, 10)}px`,
+      top: `${parseInt(rect.top + 20, 10)}px`,
+      left: `${parseInt(rect.left, 10)}px`,
       border: `1px solid #ccc`,
       display: `flex`,
       width: `11rem`,

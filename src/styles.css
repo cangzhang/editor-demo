@@ -48,7 +48,7 @@ h1 {
   background: #fff;
   margin: 20px auto 20px auto;
   border-radius: 2px;
-  max-width: 600px;
+  max-width: calc(100vw - 60px);
   color: #000;
   position: relative;
   line-height: 20px;
