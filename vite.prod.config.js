@@ -24,7 +24,7 @@ export default defineConfig({
       entries: [
         {
           find: 'shared',
-          replacement: resolve(projectRootDir, 'shared', 'src')
+          replacement: resolve(projectRootDir, 'lexical', 'shared', 'src')
         }
       ],
     }),
@@ -44,6 +44,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: new URL('./index.html', import.meta.url).pathname,
+        lexical: new URL('./lexical.html', import.meta.url).pathname,
       },
     },
     commonjsOptions: {include: []},

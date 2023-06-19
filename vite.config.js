@@ -23,7 +23,7 @@ export default defineConfig({
       entries: [
         {
           find: 'shared',
-          replacement: path.resolve(projectRootDir, 'shared', 'src')
+          replacement: path.resolve(projectRootDir, 'lexical', 'shared', 'src')
         }
       ],
     }),
@@ -37,7 +37,7 @@ export default defineConfig({
       plugins: [
         '@babel/plugin-transform-flow-strip-types',
         [
-          require('./scripts/error-codes/transform-error-messages'),
+          require('./lexical/scripts/error-codes/transform-error-messages'),
           {
             noMinify: true,
           },
@@ -52,6 +52,7 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: new URL('./index.html', import.meta.url).pathname,
+        lexical: new URL('./lexical.html', import.meta.url).pathname
       },
     },
   },
