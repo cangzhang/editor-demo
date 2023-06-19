@@ -160,7 +160,6 @@ export default function Editor() {
       const parser = new DOMParser();
       const dom = parser.parseFromString(PRESET_CONTENT, 'text/html');
       const nodes = $generateNodesFromDOM(editor, dom);
-      console.log(nodes)
       $getRoot().select();
       const selection = $getSelection();
       selection?.insertNodes(nodes);
