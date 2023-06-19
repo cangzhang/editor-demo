@@ -1,2 +1,2 @@
-FROM pierrezemb/gostatic
-COPY ./build/ /srv/http/
+FROM joseluisq/static-web-server:2
+COPY ./build/ /public
