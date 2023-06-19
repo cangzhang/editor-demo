@@ -1,6 +1,6 @@
-node_modules/
-.idea/
 .vscode/
+.idea/
 .DS_Store
-dist/
-.parcel-cache/
+
+node_modules/
+build/

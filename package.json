@@ -1,31 +1,49 @@
 {
-  "name": "lexical-plain-markdown-example",
-  "version": "1.0.0",
-  "description": "",
-  "keywords": [],
-  "type": "module",
-  "main": "src/index.js",
+  "name": "lexical-playground",
+  "version": "0.11.1",
+  "private": true,
+  "scripts": {
+    "dev": "vite --host",
+    "build": "vite build --config vite.prod.config.js",
+    "preview": "vite preview"
+  },
   "dependencies": {
-    "@lexical/react": "0.2.4",
-    "@lexical/selection": "0.2.4",
-    "lexical": "0.2.4",
-    "react": "17.0.2",
-    "react-dom": "17.0.2",
-    "react-dropzone": "^12.0.5"
+    "@excalidraw/excalidraw": "^0.14.2",
+    "@lexical/clipboard": "0.11.1",
+    "@lexical/code": "0.11.1",
+    "@lexical/file": "0.11.1",
+    "@lexical/hashtag": "0.11.1",
+    "@lexical/link": "0.11.1",
+    "@lexical/list": "0.11.1",
+    "@lexical/mark": "0.11.1",
+    "@lexical/overflow": "0.11.1",
+    "@lexical/plain-text": "0.11.1",
+    "@lexical/react": "0.11.1",
+    "@lexical/rich-text": "0.11.1",
+    "@lexical/selection": "0.11.1",
+    "@lexical/table": "0.11.1",
+    "@lexical/utils": "0.11.1",
+    "katex": "^0.15.2",
+    "lexical": "0.11.1",
+    "lodash-es": "^4.17.21",
+    "prettier": "^2.3.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-error-boundary": "^3.1.4",
+    "y-websocket": ">=1.3.x",
+    "yjs": ">=13.5.42"
   },
   "devDependencies": {
-    "@babel/runtime": "7.13.8",
-    "parcel": "^2.5.0",
-    "typescript": "^4.6.3"
-  },
-  "scripts": {
-    "start": "pnpm exec parcel index.html",
-    "build": "react-scripts build"
-  },
-  "browserslist": [
-    ">0.2%",
-    "not dead",
-    "not ie <= 11",
-    "not op_mini all"
-  ]
+    "@babel/helper-module-imports": "^7.22.5",
+    "@babel/plugin-transform-flow-strip-types": "^7.22.5",
+    "@babel/preset-react": "^7.22.5",
+    "@rollup/plugin-alias": "^5.0.0",
+    "@rollup/plugin-babel": "^6.0.3",
+    "@rollup/plugin-commonjs": "^25.0.1",
+    "@rollup/plugin-node-resolve": "^15.1.0",
+    "@types/lodash-es": "^4.14.182",
+    "@vitejs/plugin-react": "^1.0.7",
+    "terser": "^5.18.0",
+    "vite": "4.3.9"
+  }
 }
