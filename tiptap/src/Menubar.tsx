@@ -49,6 +49,14 @@ export const MenuBar = ({editor}) => {
       .run()
   }, [editor])
 
+  const addImage = useCallback(() => {
+    const url = window.prompt('URL')
+
+    if (url) {
+      editor.chain().focus().setImage({ src: url }).run()
+    }
+  }, [editor])
+
   return (
     <div>
       <div>
@@ -125,6 +133,9 @@ export const MenuBar = ({editor}) => {
         >
           H3
         </button>
+      </div>
+      <div>
+        <button onClick={addImage}>Add Image</button>
       </div>
       <div>
         <button onClick={() => console.log(editor.getHTML())}>Export to HTML</button>

@@ -45,6 +45,7 @@ export default defineConfig({
       input: {
         main: new URL('./index.html', import.meta.url).pathname,
         lexical: new URL('./lexical.html', import.meta.url).pathname,
+        tiptap: new URL('./tiptap.html', import.meta.url).pathname,
       },
     },
     commonjsOptions: {include: []},
